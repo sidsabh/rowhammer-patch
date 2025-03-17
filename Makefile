@@ -14,7 +14,7 @@ $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
 $(BUILD_DIR)/%_rv: %.c | $(BUILD_DIR)
-	source $(ENV_SCRIPT) && $(CC) $(CFLAGS) -o $@ $<
+	BUILD_MODE=1 bash -c "source $(ENV_SCRIPT) && exec $(CC) $(CFLAGS) -o $@ $<"
 
 run-qemu:
 	qemu-system-riscv64 \

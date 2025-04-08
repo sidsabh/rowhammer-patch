@@ -1,4 +1,4 @@
-#include <tcclib.h>
+#include <stdio.h>
 
 void vulnerable_function() {
     printf("Hello, RISC-V!\n");

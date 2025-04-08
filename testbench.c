@@ -54,9 +54,11 @@ void flip_bit_and_execute(const char *filename) {
     write(temp_fd, mem, size);
     close(temp_fd);
     munmap(mem, size);
+    printf("Writing modified binary to /tmp/...\n");
 
     // Set executable permission
     chmod(temp_filename, 0755);
+    printf("Made temp file executable\n");
 
     // Fork and execute the modified binary
     pid_t pid = fork();
@@ -78,9 +80,13 @@ void flip_bit_and_execute(const char *filename) {
     unlink(temp_filename);
 }
 
-int main() {
-    printf("Running testbench on poc_rv\n");
-    flip_bit_and_execute("./poc_rv");
+int main(int argc, char** argv) {
+    if(argc != 2){
+	fprintf(stderr, "Required Argument: binary where we want to bitflip\n");
+	exit(1);
+    }
+    printf("Running testbench on %s\n",argv[1]);
+    flip_bit_and_execute(argv[1]);
     return 0;
 }
 

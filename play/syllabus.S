@@ -1,7 +1,7 @@
     .section .text
-    .global _start
+    .global main//.global _my_start
 
-_start:
+main:
     # Load the address of 'value_storage' into a2
     addi sp, sp, -4    # Allocate space on stack
     li t0, 42          # Load 42 into t0

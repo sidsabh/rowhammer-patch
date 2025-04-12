@@ -3,3 +3,5 @@ debian-rv64
 *.out
 *.o
 *.elf
+venv
+.vscode

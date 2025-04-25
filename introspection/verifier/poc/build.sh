@@ -2,8 +2,9 @@
 set -e
 
 echo "[1] Initial build (no hash)..."
-make clean
-make OUTFILE=verified_main.elf
+make -s clean
+: "${INFILE:=tests/simple.c}"
+make -s INFILE="$INFILE" OUTFILE=verified_main.elf
 
 echo "[2] Hashing .text section and deriving constants..."
 
@@ -41,6 +42,7 @@ echo "BOTTOM_32_12=$BOT_12"
 
 touch template_verifier.c
 make FINAL_BUILD=1 \
+     INFILE="$INFILE" \
      OUTFILE=patched_main.elf \
      CT_MACROS="-DTOP_32_20=${TOP_20} -DTOP_32_12=${TOP_12} \
                 -DBOTTOM_32_20=${BOT_20} -DBOTTOM_32_12=${BOT_12}"

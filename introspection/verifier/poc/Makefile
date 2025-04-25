@@ -6,7 +6,11 @@ OUTFILE ?= verified_main.elf  # default output name
 CFLAGS := -g -nostdlib -ffreestanding -fno-stack-protector \
           -I$(SYSROOT)/usr/include -I$(SYSROOT)/usr/include/openssl
 
-LIBS := -lcrypto -lc -lgcc
+# IF WANT TO USE ELF VERSION:
+# make sure to source LD_LIBRARY_PATH=/home/sidsabh/code/security/rowhammer-project/riscv/sysroot/usr/lib
+LIBS := -lcrypto -lc -lgcc -lelf -lz
+# IF WANT TO USE LD SCRIPT VERSION:
+# LIBS := -lcrypto -lc -lgcc
 LDFLAGS := --sysroot=$(SYSROOT) -T layout.ld -L$(SYSROOT)/usr/lib
 
 all: $(OUTFILE)  # <- *** depend on OUTFILE target, not shell commands

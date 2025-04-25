@@ -1,4 +1,5 @@
 #define DEBUG
+// #define LD_VERSION 1
 
 #ifndef TOP_32_20
 #define TOP_32_20 0xFFFFF
@@ -53,7 +54,18 @@
 #endif
 
 #include <openssl/sha.h>
+
+#ifdef LD_VERSION
 extern char __text_start, __text_end;
+#else 
+#include <stdlib.h>
+#include <fcntl.h>
+#include <string.h>
+#include <gelf.h>
+#include <libelf.h>
+#include <unistd.h>
+void get_hash_via_elf(unsigned char *hash);
+#endif
 
 __attribute__((constructor))
 __attribute__((section(".verify")))
@@ -65,9 +77,14 @@ void verify() {
     DPRINT("BOTTOM_32_12: %x\n", BOTTOM_32_12);
 
     unsigned char hash[SHA256_DIGEST_LENGTH];
+    // get the hash of the text section
+#ifdef LD_VERSION
     SHA256((unsigned char*)&__text_start,
            (size_t)(&__text_end - &__text_start),
            hash);
+#else
+    get_hash_via_elf(hash);
+#endif
 
 
     // print hash
@@ -153,3 +170,47 @@ void verify() {
     );
     
 }
+
+
+#ifndef LD_VERSION
+void get_hash_via_elf(unsigned char *hash) {
+    int fd = open("/proc/self/exe", O_RDONLY);
+    if (fd < 0) {
+        perror("open");
+        exit(EXIT_FAILURE);
+    }
+
+    if (elf_version(EV_CURRENT) == EV_NONE) {
+        fprintf(stderr, "ELF library initialization failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    Elf *e = elf_begin(fd, ELF_C_READ, NULL);
+    if (!e) {
+        fprintf(stderr, "elf_begin failed: %s\n", elf_errmsg(-1));
+        exit(EXIT_FAILURE);
+    }
+
+    size_t shstrndx;
+    if (elf_getshdrstrndx(e, &shstrndx) != 0) {
+        fprintf(stderr, "elf_getshdrstrndx failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    Elf_Scn *scn = NULL;
+    GElf_Shdr shdr;
+    char *name;
+
+    while ((scn = elf_nextscn(e, scn)) != NULL) {
+        gelf_getshdr(scn, &shdr);
+        name = elf_strptr(e, shstrndx, shdr.sh_name);
+        if (strcmp(name, ".text") == 0) {
+            lseek(fd, shdr.sh_offset, SEEK_SET);
+            unsigned char *buf = malloc(shdr.sh_size);
+            read(fd, buf, shdr.sh_size);
+
+            SHA256(buf, shdr.sh_size, hash);
+            free(buf);
+    }}
+}
+#endif

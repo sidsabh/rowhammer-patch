@@ -1,3 +1,5 @@
+#define DEBUG
+
 #ifndef TOP_32_20
 #define TOP_32_20 0xFFFFF
 #endif
@@ -37,16 +39,19 @@
 #define TOP_32L_0    (TOP_32_12 & 1)
 #endif
 
-
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
 
-#define DEBUG
-
+#ifdef DEBUG
+#define DPRINT(...) printf(__VA_ARGS__)
+#else
+#define DPRINT(...)
+#endif
 
 #ifdef DEBUG
 #include <stdio.h>
 #endif
+
 #include <openssl/sha.h>
 extern char __text_start, __text_end;
 
@@ -54,14 +59,10 @@ __attribute__((constructor))
 __attribute__((section(".verify")))
 void verify() {
 
-
-    // print the TOP_32_20 and TOP_32_12 and BOTTOM_32_20 and BOTTOM_32_12
-#ifdef DEBUG
-    printf("TOP_32_20: %x\n", TOP_32_20);
-    printf("TOP_32_12: %x\n", TOP_32_12);
-    printf("BOTTOM_32_20: %x\n", BOTTOM_32_20);
-    printf("BOTTOM_32_12: %x\n", BOTTOM_32_12);
-#endif
+    DPRINT("TOP_32_20: %x\n", TOP_32_20);
+    DPRINT("TOP_32_12: %x\n", TOP_32_12);
+    DPRINT("BOTTOM_32_20: %x\n", BOTTOM_32_20);
+    DPRINT("BOTTOM_32_12: %x\n", BOTTOM_32_12);
 
     unsigned char hash[SHA256_DIGEST_LENGTH];
     SHA256((unsigned char*)&__text_start,
@@ -70,11 +71,11 @@ void verify() {
 
 
     // print hash
-    printf("Hash: ");
+    DPRINT("Hash: ");
     for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) {
-        printf("%02x", hash[i]);
+        DPRINT("%02x", hash[i]);
     }
-    printf("\n");
+    DPRINT("\n");
 
     uint64_t rt_hash_val = 0;
     for (int i = 0; i < 4; i++) {
@@ -85,10 +86,9 @@ void verify() {
         rt_hash_val ^= chunk;
     }
     //print this value
-    printf("rt_hash_val: %llx\n", rt_hash_val);
+    DPRINT("rt_hash_val: %llx\n", rt_hash_val);
     
-
-    // print PC
+#ifdef DEBUG
     uint64_t pc = 0;
     __asm__ volatile (
         "auipc %0, 0\n"
@@ -96,42 +96,16 @@ void verify() {
     );
     // print the value of pc
     printf("PC: %llx\n", pc);
-           
-    // uint64_t computed_target;
-    // __asm__ volatile (
-    //     // --- Build PC + CT_HASH into x20 ---
-    //     "auipc x20, " STR(BOTTOM_32_20) "\n"
-    //     "li    x23, " STR(BOTTOM_32_12) "\n"
-    //     "or    x20, x20, x23\n"
-    
-    //     "lui   x23, " STR(TOP_32_20) "\n"
-    //     "li    x25, " STR(TOP_32_12) "\n"
-    //     "or    x23, x23, x25\n"
-    //     "slli  x23, x23, 32\n"
-    //     "add   x20, x20, x23\n"
-    
-    //     "mv    x25, %1\n"
-    //     "sub   x20, x20, x25\n"
-    //     "addi  x20, x20, 0x132\n"
-    //     "mv %0, x20\n"
-    //     : "=r"(computed_target)   // first outputs
-    //     : "r"(rt_hash_val)        // then inputs
-    //     : "x20", "x23", "x25"
-    // );
-//     #ifdef DEBUG
-//     printf("computed jump_to %x\n", computed_target);
-// #endif
-    // print these guys
-#ifdef DEBUG
-    printf("BOTTOM_32_19: %x\n", BOTTOM_32_19);
-    printf("BOTTOM_32_1: %x\n", BOTTOM_32_1);
-    printf("BOTTOM_32L_11: %x\n", BOTTOM_32L_11);
-    printf("BOTTOM_32L_0: %x\n", BOTTOM_32L_0);
-    printf("TOP_32_19: %x\n", TOP_32_19);
-    printf("TOP_32_1: %x\n", TOP_32_1);
-    printf("TOP_32L_11: %x\n", TOP_32L_11);
-    printf("TOP_32L_0: %x\n", TOP_32L_0);
 #endif
+
+    DPRINT("BOTTOM_32_19: %x\n", BOTTOM_32_19);
+    DPRINT("BOTTOM_32_1: %x\n", BOTTOM_32_1);
+    DPRINT("BOTTOM_32L_11: %x\n", BOTTOM_32L_11);
+    DPRINT("BOTTOM_32L_0: %x\n", BOTTOM_32L_0);
+    DPRINT("TOP_32_19: %x\n", TOP_32_19);
+    DPRINT("TOP_32_1: %x\n", TOP_32_1);
+    DPRINT("TOP_32L_11: %x\n", TOP_32L_11);
+    DPRINT("TOP_32L_0: %x\n", TOP_32L_0);
 
     __asm__ volatile (
         /* x20 has PC */
@@ -145,7 +119,7 @@ void verify() {
 
         /* x23 has BOTTOM_32_20 */
         "lui   x23, " STR(BOTTOM_32_19) "\n"
-        "slli  x23, x23, 1\n"
+        "srai  x23, x23, 11\n"
         "ori   x23, x23, " STR(BOTTOM_32_1) "\n"
         "slli  x23, x23, 12\n"
         "add  x20, x20, x23\n"
@@ -159,18 +133,17 @@ void verify() {
 
         /* x23 has TOP_32_20 */
         "lui   x23, " STR(TOP_32_19) "\n"
-        "slli  x23, x23, 1\n"
+        "srai  x23, x23, 11\n"
         "ori   x23, x23, " STR(TOP_32_1) "\n"
         "slli  x23, x23, 44\n"
         "add   x20, x20, x23\n"
-
     
         /* rt_hash_val → x25 */
         "mv    x25, %0\n"
         /* (PC+CT) – RT */
         "sub   x20, x20, x25\n"
         /* skip offset */
-        "addi  x20, x20, 0x42\n"
+        "addi  x20, x20, 0x50\n"
         "jalr  x0, x20, 0\n"
         /* faulter */
         ".word 0xFFFFFFFF\n"
@@ -178,26 +151,5 @@ void verify() {
         : "r"(rt_hash_val)
         : "x20","x23","x25"
     );
+    
 }
-
-
-// __asm__ volatile (
-//     // --- Build PC + CT_HASH into x20 ---
-//     "auipc x20, " STR(BOTTOM_32_20) "\n"
-//     "li    x23, " STR(BOTTOM_32_12) "\n"
-//     "or    x20, x20, x23\n"
-
-//     "lui   x23, " STR(TOP_32_20) "\n"
-//     "li    x25, " STR(TOP_32_12) "\n"
-//     "or    x23, x23, x25\n"
-//     "slli  x23, x23, 32\n"
-//     "add   x20, x20, x23\n"
-
-//     "mv    x25, %1\n"
-//     "sub   x20, x20, x25\n"
-//     "addi  x20, x20, 0x2a\n"
-//     "mv %0, x20\n"
-//     : "=r"(computed_target)   // first outputs
-//     : "r"(rt_hash_val)        // then inputs
-//     : "x20", "x23", "x25"
-// );

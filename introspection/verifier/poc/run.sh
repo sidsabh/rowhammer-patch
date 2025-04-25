@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# TO RUN: ./run.sh tests/<test_file>.c
+
+INFILE="$1"
+export INFILE
+
 set -e
 
 export C_INCLUDE_PATH=/usr/riscv64-linux-gnu/include

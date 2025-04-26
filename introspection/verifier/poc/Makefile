@@ -1,4 +1,5 @@
-SYSROOT := /home/sidsabh/code/security/rowhammer-project/riscv/sysroot
+#Can pass your sysroot as an argument
+SYSROOT ?= /home/prachi/sysroot-link#/home/sidsabh/code/security/rowhammer-project/riscv/sysroot
 CC := riscv64-linux-gnu-gcc
 
 CFLAGS := -g -nostdlib -ffreestanding -fno-stack-protector \
@@ -8,7 +9,7 @@ LIBS := -lcrypto -lc -lgcc -lelf -lz
 LDFLAGS := --sysroot=$(SYSROOT) -T layout.ld -L$(SYSROOT)/usr/lib
 
 # Set defaults
-INFILE ?= main.c
+INFILE ?= tests/simple.c # main.c
 FINAL_BUILD ?= 0
 CT_MACROS ?=
 

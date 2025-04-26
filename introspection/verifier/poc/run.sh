@@ -1,17 +1,24 @@
 #!/bin/bash
 
-# TO RUN: ./run.sh tests/<test_file>.c
-
+# TO RUN: ./run.sh tests/<test_file>.c <optional sysroot dir>
+# Get input arguments
 INFILE="$1"
+SYSROOT="${2:-/home/prachi/sysroot-link}"  # Default SYSROOT if not provided
+
+# Export variables
 export INFILE
+export SYSROOT
 
-set -e
-
+# Set environment variables
 export C_INCLUDE_PATH=/usr/riscv64-linux-gnu/include
 export LIBRARY_PATH=/usr/riscv64-linux-gnu/lib
-export LD_LIBRARY_PATH=/home/sidsabh/code/security/rowhammer-project/riscv/sysroot/usr/lib
+export LD_LIBRARY_PATH="${SYSROOT}/usr/lib:/home/prachi/sysroot-link/usr/lib"
 
-./build.sh
+# Ensure the script exits on error
+set -e
+
+# Run the build script with SYSROOT passed as an argument
+./build.sh $SYSROOT
 
 echo "[5] Flipping bit in patched_main.elf..."
 
@@ -61,6 +68,7 @@ echo "[✓] Bit flip complete: altered_main.elf"
 
 chmod +x altered_main.elf
 chmod +x patched_main.elf
-echo "[✓] Executing altered_main.elf and patched_main.elf with QEMU..."
-qemu-riscv64 -L /usr/riscv64-linux-gnu ./patched_main.elf
-qemu-riscv64 -L /usr/riscv64-linux-gnu ./altered_main.elf
+echo "[✓] Executing patched_main.elf with QEMU..."
+qemu-riscv64 -L /usr/riscv64-linux-gnu -E LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./patched_main.elf
+echo "[✓] Executing altered_main.elf with QEMU..."
+qemu-riscv64 -L /usr/riscv64-linux-gnu -E LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./altered_main.elf

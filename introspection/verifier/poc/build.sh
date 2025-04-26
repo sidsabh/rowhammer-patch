@@ -1,10 +1,19 @@
 #!/bin/bash
 set -e
 
+# Set SYSROOT to the first argument, or default
+SYSROOT="${1:-/home/prachi/sysroot-link}"
+
+# Print the initial build message
 echo "[1] Initial build (no hash)..."
+
 make -s clean
+
+# Set a default value for INFILE if it's not already set
 : "${INFILE:=tests/simple.c}"
-make -s INFILE="$INFILE" OUTFILE=verified_main.elf
+
+# Run the make command with the provided arguments
+make -s INFILE="$INFILE" OUTFILE=verified_main.elf SYSROOT="$SYSROOT"
 
 echo "[2] Hashing .text section and deriving constants..."
 
@@ -41,7 +50,7 @@ echo "BOTTOM_32_20=$BOT_20"
 echo "BOTTOM_32_12=$BOT_12"
 
 touch template_verifier.c
-make FINAL_BUILD=1 \
+make -s FINAL_BUILD=1 \
      INFILE="$INFILE" \
      OUTFILE=patched_main.elf \
      CT_MACROS="-DTOP_32_20=${TOP_20} -DTOP_32_12=${TOP_12} \

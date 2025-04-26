@@ -7,3 +7,5 @@ venv
 .vscode
 rvcodecjs
 node_modules
+*.ipynb_checkpoints
+notebook_analysis

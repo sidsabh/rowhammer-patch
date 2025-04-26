@@ -5,7 +5,7 @@ set -e
 SYSROOT="${1:-/home/prachi/sysroot-link}"
 
 # Print the initial build message
-echo "[1] Initial build (no hash)..."
+# echo "[1] Initial build (no hash)..."
 
 make -s clean
 
@@ -15,7 +15,7 @@ make -s clean
 # Run the make command with the provided arguments
 make -s INFILE="$INFILE" OUTFILE=verified_main.elf SYSROOT="$SYSROOT"
 
-echo "[2] Hashing .text section and deriving constants..."
+# echo "[2] Hashing .text section and deriving constants..."
 
 read -r CT_HASH RT_HEX TOP_20 TOP_12 BOT_20 BOT_12 <<<$(python3 - <<EOF
 import lief, hashlib
@@ -41,19 +41,20 @@ print(hex(rt_hash), hex(top_20), hex(top_12), hex(bot_20), hex(bot_12))
 EOF
 )
 
-echo "[3] CT_HASH: $CT_HASH"
-echo "[4] Derived rt_hash_val: $RT_HEX"
-echo "[5] Recompiling with macros:"
-echo "TOP_32_20=$TOP_20"
-echo "TOP_32_12=$TOP_12"
-echo "BOTTOM_32_20=$BOT_20"
-echo "BOTTOM_32_12=$BOT_12"
+# echo "[3] CT_HASH: $CT_HASH"
+# echo "[4] Derived rt_hash_val: $RT_HEX"
+# echo "[5] Recompiling with macros:"
+# echo "TOP_32_20=$TOP_20"
+# echo "TOP_32_12=$TOP_12"
+# echo "BOTTOM_32_20=$BOT_20"
+# echo "BOTTOM_32_12=$BOT_12"
 
 touch template_verifier.c
 make -s FINAL_BUILD=1 \
      INFILE="$INFILE" \
      OUTFILE=patched_main.elf \
+     SYSROOT="$SYSROOT" \
      CT_MACROS="-DTOP_32_20=${TOP_20} -DTOP_32_12=${TOP_12} \
                 -DBOTTOM_32_20=${BOT_20} -DBOTTOM_32_12=${BOT_12}"
 
-echo "[✓] Final binary rebuilt: patched_main.elf"
+# echo "[✓] Final binary rebuilt: patched_main.elf"

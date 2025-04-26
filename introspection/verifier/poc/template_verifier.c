@@ -1,5 +1,5 @@
-#define DEBUG
-// #define LD_VERSION 1
+// #define DEBUG
+#define LD_VERSION 1
 
 #ifndef TOP_32_20
 #define TOP_32_20 0xFFFFF

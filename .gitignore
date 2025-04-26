@@ -5,3 +5,5 @@ debian-rv64
 *.elf
 venv
 .vscode
+rvcodecjs
+node_modules

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>RISC-V Instruction Space</title>
+  <link rel="stylesheet" href="./css/bootstrap.min.css">
+  <style>
+    body {
+      margin: 0;
+      background: #111;
+      color: white;
+      font-family: sans-serif;
+      display: flex;
+    }
+    canvas {
+      image-rendering: pixelated;
+      cursor: crosshair;
+      width: 100%;
+    }
+    #info {
+      width: 400px;
+      padding: 1rem;
+      background: #222;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-8">
+        <canvas id="canvas" width="4096" height="4096"></canvas>
+      </div>
+      <div class="col-4" id="info">
+        <h2>Info</h2>
+        <select id="images" onchange="selectImage()">
+          <option value="riscv">Instruction Classes</option>
+        </select>
+        <pre id="hoverbox">hover for info</pre>
+        <pre id="codebox" style="height: 30pc; overflow-y: scroll">click pixel for info</pre>
+      </div>
+    </div>
+  </div>
+
+  <script src="./js/panzoom.min.js"></script>
+  <script src="./js/riscv.js"></script>
+
+  <script type="module">
+    import { Instruction } from './js/decode.js';
+
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const hoverbox = document.getElementById('hoverbox');
+    const codebox = document.getElementById('codebox');
+
+    const decodeCache = new Map(); // Optional: small cache
+
+    function selectImage() {
+      const sel = document.getElementById('images');
+      const img = new Image();
+      if (sel.value === "riscv") {
+        img.src = "./data/riscv.png";
+      }
+      img.onload = () => ctx.drawImage(img, 0, 0, 4096, 4096);
+    }
+
+    function getMousePos(canvas, ev) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: ((ev.clientX - rect.left) * canvas.width / (rect.right - rect.left)) | 0,
+        y: ((ev.clientY - rect.top) * canvas.height / (rect.bottom - rect.top)) | 0,
+      };
+    }
+
+    function xyToHilbert(x, y, order) {
+      let s = 0;
+      for (let i = order - 1; i >= 0; i--) {
+        const xi = (x >> i) & 1;
+        const yi = (y >> i) & 1;
+        if (yi === 0) {
+          const tmp = x;
+          x = y ^ (-xi);
+          y = tmp ^ (-xi);
+        }
+        s = 4 * s + 2 * xi + (xi ^ yi);
+      }
+      return s;
+    }
+
+    function decode(hex) {
+      if (decodeCache.has(hex)) {
+        return decodeCache.get(hex);
+      }
+      try {
+        const inst = new Instruction(hex.padStart(8, '0'));
+        decodeCache.set(hex, inst.asm);
+        return inst.asm;
+      } catch {
+        decodeCache.set(hex, null);
+        return null;
+      }
+    }
+
+    canvas.addEventListener('mousemove', ev => {
+      const { x, y } = getMousePos(canvas, ev);
+      const addr = xyToHilbert(x, y, 12) * 256;
+      const hex = addr.toString(16).padStart(8, '0');
+      const asm = decode(hex) || "none";
+      hoverbox.textContent = `0x${hex}: ${asm}`;
+    });
+
+    canvas.addEventListener('click', ev => {
+      const { x, y } = getMousePos(canvas, ev);
+      const addr = xyToHilbert(x, y, 12) * 256;
+      let result = `256 instructions at 0x${addr.toString(16)}\n`;
+      for (let i = 0; i < 256; i++) {
+        const cur = addr + i;
+        const hex = cur.toString(16).padStart(8, '0');
+        const asm = decode(hex);
+        if (asm) result += `0x${hex}: ${asm}\n`;
+      }
+      codebox.textContent = result;
+    });
+
+    const zoom = Panzoom(canvas, { maxScale: 20 });
+    canvas.addEventListener('wheel', zoom.zoomWithWheel);
+
+    selectImage();
+  </script>
+</body>
+</html>

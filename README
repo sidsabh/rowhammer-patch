@@ -1,0 +1,53 @@
+RowHammer Bitflip POC & RISC-V Instruction Visualizer
+
+This repository contains two standalone components:
+
+1. Runtime Verifier Proof-of-Concept (introspection/verifier/poc)
+2. RISC-V Instruction Neighbor Visualizer (contribution/ricvis)
+
+---
+
+1. Runtime Verifier POC
+
+Location:
+  introspection/verifier/poc/
+
+Contents:
+  build.sh             # Builds patched_main.elf with embedded SHA-256 check
+  run.sh               # Invokes build.sh, flips one bit, then runs both binaries under QEMU
+  template_verifier.c  # Constructor + SHA-256 runtime check code
+  layout.ld            # Custom linker script defining .text and .verify sections
+  Makefile             # Orchestrates initial build, hash extraction, and final build
+  patched_main.elf     # Final instrumented ELF
+  altered_main.elf     # Single-bit-flipped ELF
+  tests/               # Sample C programs for testing
+
+Prerequisites:
+  • riscv64-linux-gnu-gcc toolchain  
+  • qemu-riscv64  
+  • sysroot for RISC-V with OpenSSL, LibELF
+  • Python3 + LIEF (Library to Instrument Executable Formats)  
+
+Quickstart:
+  cd introspection/verifier/poc
+  chmod +x build.sh run.sh
+  ./run.sh tests/simple.c
+  # This will build the verifier, flip one bit, and run both patched_main.elf and altered_main.elf under QEMU
+
+---
+
+2. RISC-V Instruction Neighbor Visualizer
+
+Location:
+  contribution/ricvis/
+
+Quickstart:
+  cd contribution/ricvis
+  npm install
+  npm start
+  # Open http://localhost:3000 in your browser to explore RISC-V instruction bit-flip neighbors
+
+---
+
+License:
+  GPL-3.0 License
